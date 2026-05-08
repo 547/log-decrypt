@@ -1,0 +1,20 @@
+{
+  "methods": [
+    {
+      "name": "plain",
+      "description": "明文内容，直接返回",
+      "params": {}
+    },
+    {
+      "name": "aes-cbc",
+      "description": "AES CBC 解密",
+      "params": {
+        "key": "your-32-byte-secret-key-string-here",
+        "iv": "your-16-byte-iv-here",
+        "inputEncoding": "base64",
+        "outputEncoding": "utf-8",
+        "padding": "pkcs7"
+      }
+    }
+  ]
+}

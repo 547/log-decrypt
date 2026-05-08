@@ -70,6 +70,22 @@ def main():
         sys.exit(1)
     
     config_path = str(CONFIG_PATH)
+    example_path = config_path + '.example'
+    
+    # 检查配置文件是否存在
+    if not os.path.exists(config_path):
+        print(f"❌ 错误：缺少日志解密配置文件", file=sys.stderr)
+        print(f"", file=sys.stderr)
+        print(f"请按以下步骤配置：", file=sys.stderr)
+        print(f"1. 复制模板：cp {example_path} {config_path}", file=sys.stderr)
+        print(f"2. 编辑 {config_path}，填入你的解密方法配置", file=sys.stderr)
+        print(f"3. 保存后重新运行命令", file=sys.stderr)
+        print(f"", file=sys.stderr)
+        print(f"配置项说明：", file=sys.stderr)
+        print(f"  methods - 解密方法列表，按顺序尝试", file=sys.stderr)
+        print(f"  plain   - 明文内容，直接返回", file=sys.stderr)
+        print(f"  aes-cbc - AES CBC 模式解密，需要 key 和 iv", file=sys.stderr)
+        sys.exit(1)
     time_filter = None
     raw_mode = False
     

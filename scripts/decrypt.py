@@ -116,8 +116,28 @@ class PlainTextDecryptor(Decryptor):
 
 
 def load_config(config_path: str) -> Dict[str, Any]:
-    with open(config_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    """读取配置文件，不存在则报错提示用户配置。"""
+    if not os.path.exists(config_path):
+        example_path = config_path + '.example'
+        print(f"❌ 错误：缺少日志解密配置文件", file=sys.stderr)
+        print(f"", file=sys.stderr)
+        print(f"请按以下步骤配置：", file=sys.stderr)
+        print(f"1. 复制模板：cp {example_path} {config_path}", file=sys.stderr)
+        print(f"2. 编辑 {config_path}，填入你的解密方法配置", file=sys.stderr)
+        print(f"3. 保存后重新运行命令", file=sys.stderr)
+        print(f"", file=sys.stderr)
+        print(f"配置项说明：", file=sys.stderr)
+        print(f"  methods - 解密方法列表，按顺序尝试", file=sys.stderr)
+        print(f"  plain   - 明文内容，直接返回", file=sys.stderr)
+        print(f"  aes-cbc - AES CBC 模式解密，需要 key 和 iv", file=sys.stderr)
+        sys.exit(1)
+    
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"❌ 错误：配置文件格式错误 - {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def create_decryptor(method: str, config: Dict[str, Any]) -> Optional[Decryptor]:

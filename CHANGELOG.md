@@ -4,6 +4,9 @@
 ### 更新
 - SKILL.md 简介：新增支持文件内容、直接密文两种输入方式
 
+### 优化
+- `decrypt_content_direct()`：解密成功后，若明文为 JSON 则格式化后再返回（调用 `format_json_if_possible`）
+
 ## v2026-05-08
 
 ### 改进

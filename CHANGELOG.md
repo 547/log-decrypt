@@ -5,11 +5,14 @@
 - SKILL.md 简介：新增支持文件内容、直接密文两种输入方式
 
 ### 优化
-- `decrypt_content_direct()`：解密成功后，若明文为 JSON 则格式化后再返回（调用 `format_json_if_possible`）
+- `decrypt_content_direct()`：解密成功后（JSON string decrypted），将 decrypted 从 string 转为 dict，供 `json_fmt` 正确格式化
 
 ### 重构
-- 新增 `scripts/utils.py`：通用工具函数，抽离 `json_fmt(obj)` 复用所有 `json.dumps(ensure_ascii=False, indent=2)` 调用
-- `decrypt.py`、`decrypt_cli.py` 均复用 `utils.json_fmt()`
+- 新增 `scripts/json_utils.py`：`json_parse`、`json_fmt`、`json_load` 统一管理所有 JSON 序列化/反序列化逻辑
+- `AESCBCDecryptor.decrypt()`：返回 dict（JSON 解密成功时）或 string（非 JSON 时），不再自行格式化
+- `decrypt_cli.py --raw`：统一使用 `json_fmt(decrypted)` 格式化输出（dict → 格式化 JSON；JSON string → 重新格式化；普通 string → 保持原样）
+- `decrypt_content_direct()`：若 `decrypted` 为 JSON 字符串则转为 dict，供 `json_fmt` 正确处理
+- `process_log_content()`：`decrypted_content` 为 dict 时先转为格式化 JSON 字符串，再与 prefix 拼接
 
 ## v2026-05-08
 

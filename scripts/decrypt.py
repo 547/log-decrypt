@@ -7,7 +7,6 @@ Supports time-based filtering.
 """
 
 import sys
-import json
 import base64
 import zipfile
 import tempfile
@@ -16,7 +15,8 @@ import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from json_utils import json_fmt, json_parse, json_load
+from json_utils import json_parse, json_load, json_fmt, json_try_fmt
+import json
 
 try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -31,7 +31,15 @@ class Decryptor:
     """Base decryptor class"""
 
     def decrypt(self, ciphertext: str) -> Optional[str]:
+        """Pure decryption — subclasses implement this, no formatting."""
         raise NotImplementedError
+
+    def decrypt_and_format(self, ciphertext: str) -> Optional[str]:
+        """Decrypt and format: calls decrypt(), then applies JSON formatting if applicable."""
+        result = self.decrypt(ciphertext)
+        if result is None:
+            return None
+        return json_try_fmt(result)
 
     def can_handle(self, content: str) -> bool:
         """Check if this decryptor can handle the content"""
@@ -96,8 +104,7 @@ class AESCBCDecryptor(Decryptor):
             data = unpadder.update(padded_data) + unpadder.finalize()
 
             text = data.decode(self.output_encoding)
-            parsed, _ = json_parse(text)
-            return parsed if parsed is not None else text
+            return text
         except:
             return None
 
@@ -169,7 +176,7 @@ def try_decrypt_with_methods(content: str, config_path: str) -> Dict[str, Any]:
             tried_methods.append(method_name)
             continue
 
-        result = decryptor.decrypt(content)
+        result = decryptor.decrypt_and_format(content)
         if result is not None:
             return {
                 'success': True,
@@ -325,9 +332,6 @@ def process_log_content(content: str, config_path: str, time_filter: Optional[Di
 
             if result['success']:
                 decrypted_content = result['decrypted']
-                # If decrypted content is a dict (from AES), convert to formatted JSON string
-                if isinstance(decrypted_content, dict):
-                    decrypted_content = json.dumps(decrypted_content, ensure_ascii=False, indent=2)
                 decrypted_line = prefix + decrypted_content
                 results.append({
                     'original': line,
@@ -410,13 +414,7 @@ def process_file(file_path: str, config_path: str, time_filter: Optional[Dict[st
 
 
 def decrypt_content_direct(content: str, config_path: str) -> Dict[str, Any]:
-    result = try_decrypt_with_methods(content, config_path)
-    # If decrypted is a JSON string, format it as a dict so json_fmt formats it correctly
-    if result.get('decrypted') and isinstance(result['decrypted'], str):
-        parsed, _ = json_parse(result['decrypted'])
-        if parsed is not None:
-            result['decrypted'] = parsed
-    return result
+    return try_decrypt_with_methods(content, config_path)
 
 
 def main():

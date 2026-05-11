@@ -13,13 +13,13 @@ import zipfile
 import shutil
 from pathlib import Path
 from typing import Dict, Optional
+from json_utils import json_fmt
 
 # Add scripts directory to path
 script_dir = Path(__file__).parent
 sys.path.insert(0, str(script_dir))
 
 from decrypt import process_log_content, process_file, extract_zip, decrypt_content_direct, parse_time_filter
-from json_utils import json_fmt
 
 CONFIG_PATH = script_dir / "config.json"
 
@@ -118,7 +118,7 @@ def main():
                 if f.get('matched_count', 0) > 0 or not time_filter:
                     for line in f.get('lines', []):
                         if line.get('success'):
-                            print(json_fmt(line['decrypted']))
+                            print(line['decrypted'])
         else:
             print(json_fmt(result))
 
@@ -137,7 +137,7 @@ def main():
                 if f.get('matched_count', 0) > 0 or not time_filter:
                     for line in f.get('lines', []):
                         if line.get('success'):
-                            print(json_fmt(line['decrypted']))
+                            print(line['decrypted'])
         else:
             print(json_fmt(result))
 
@@ -148,7 +148,7 @@ def main():
 
         if raw_mode:
             decrypted = result.get('decrypted')
-            print(json_fmt(decrypted) if decrypted else result.get('original', content))
+            print(decrypted if decrypted else result.get('original', content))
         else:
             print(json_fmt(result))
 

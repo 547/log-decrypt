@@ -8,3 +8,5 @@ __pycache__/
 
 # 示例文件保留
 !scripts/config.json.example
+/.codebuddy
+/.workbuddy

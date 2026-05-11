@@ -135,14 +135,14 @@ def main():
         output_results(result)
 
     else:
-        # Treat as content to decrypt directly
+        # Treat as content to decrypt directly (single log line)
         content = args[0]
-        result = decrypt_content_direct(content, config_path)
-
-        if result.get('success'):
-            print(result['decrypted'])
-        else:
-            print(result.get('decrypted', result.get('original', content)))
+        result = process_log_content(content, config_path)
+        for line in result.get('lines', []):
+            if line.get('success'):
+                print(line['decrypted'])
+            else:
+                print(line.get('original', content))
 
 
 if __name__ == '__main__':

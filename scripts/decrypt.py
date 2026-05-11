@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from json_utils import json_fmt, json_parse, json_try_fmt
+from json_utils import json_fmt, json_parse, json_try_fmt, json_load
 
 try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -134,12 +134,12 @@ def load_config(config_path: str) -> Dict[str, Any]:
         print(f"  aes-cbc - AES CBC 模式解密，需要 key 和 iv", file=sys.stderr)
         sys.exit(1)
     
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except json.JSONDecodeError as e:
-        print(f"❌ 错误：配置文件格式错误 - {e}", file=sys.stderr)
+    with open(config_path, 'r', encoding='utf-8') as f:
+        parsed, err = json_load(f)
+    if err is not None:
+        print(f"❌ 错误：配置文件格式错误 - {err}", file=sys.stderr)
         sys.exit(1)
+    return parsed
 
 
 def create_decryptor(method: str, config: Dict[str, Any]) -> Optional[Decryptor]:

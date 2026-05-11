@@ -13,6 +13,7 @@
 - `decrypt_cli.py --raw`：统一使用 `json_fmt(decrypted)` 格式化输出（dict → 格式化 JSON；JSON string → 重新格式化；普通 string → 保持原样）
 - `decrypt_content_direct()`：若 `decrypted` 为 JSON 字符串则转为 dict，供 `json_fmt` 正确处理
 - `process_log_content()`：`decrypted_content` 为 dict 时先转为格式化 JSON 字符串，再与 prefix 拼接
+- `PlainTextDecryptor.decrypt()`：对 JSON 可解析的明文内容返回 dict（而非原始 string），与 `AESCBCDecryptor.decrypt()` 行为一致，修复明文 JSON 在非匹配行中被错误序列化的 bug
 
 ## v2026-05-08
 

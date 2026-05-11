@@ -96,10 +96,6 @@ python3 scripts/decrypt_cli.py --file /Users/momo/Desktop/logs_1777342038575.zip
 
 # 解密字符串内容（直接密文）
 python3 scripts/decrypt_cli.py "<base64_encrypted_string>"
-
-# 解密直接密文（原始输出）
-python3 scripts/decrypt_cli.py --raw "<base64_encrypted_string>"
-
 ```
 
 ### 方式3：Python 模块调用
@@ -239,7 +235,5 @@ result = process_file("/path/to/file.txt", "scripts/config.json", time_filter)
 
 **JSON 必须格式化：**
 - 解密结果是 JSON 时，必须格式化输出（缩进 2 空格）
-- 格式化后的 JSON 同样必须完整，不能省略任何字段
+- JSON 格式化后的 JSON 同样必须完整，不能省略任何字段
 - 这是 bug 排查的关键工具，数据完整性直接影响问题定位
-
-如果返回内容过长，使用 `--raw` 参数输出原始格式，而不是省略内容。

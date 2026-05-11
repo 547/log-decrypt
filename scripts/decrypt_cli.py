@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
 """
 Log Decryption CLI
-Simple wrapper for decrypt.py with additional path handling.
-Supports: file paths, folder paths, zip files, actual file attachments, time filtering.
+命令行工具，支持文件/文件夹/直接密文解密，统一输出格式。
+
+Usage:
+  decrypt_cli.py <content>                    - 解密直接密文
+  decrypt_cli.py --file <path> [time_filter]  - 解密文件
+  decrypt_cli.py --folder <path> [time_filter] - 解密文件夹（所有 .txt/.log）
+
+Output: 统一格式 "[时间戳][FLUTTER][标签] {JSON}"
 """
 
 import sys
 import os
-import json
 import tempfile
 import zipfile
 import shutil
 from pathlib import Path
 from typing import Dict, Optional
-from json_utils import json_fmt
 
 # Add scripts directory to path
 script_dir = Path(__file__).parent
@@ -65,8 +69,6 @@ def main():
         print("  decrypt_cli.py <content>                    - Decrypt content directly", file=sys.stderr)
         print("  decrypt_cli.py --file <path> [time_filter]  - Decrypt file path", file=sys.stderr)
         print("  decrypt_cli.py --folder <path> [time_filter] - Decrypt folder (all .txt/.log)", file=sys.stderr)
-        print("  decrypt_cli.py --raw --file <path> [time_filter]  - Output raw decrypted text", file=sys.stderr)
-        print("  decrypt_cli.py --raw --folder <path> [time_filter] - Output raw decrypted text", file=sys.stderr)
         print("  Time filter: '12:17', '12:17:30', '2026/04/28 10:16'", file=sys.stderr)
         sys.exit(1)
 
@@ -87,14 +89,10 @@ def main():
         print(f"  plain   - 明文内容,直接返回", file=sys.stderr)
         print(f"  aes-cbc - AES CBC 模式解密,需要 key 和 iv", file=sys.stderr)
         sys.exit(1)
-    time_filter = None
-    raw_mode = False
-
-    # Check for --raw flag
+    
+    # Parse command arguments
     args = sys.argv[1:]
-    if '--raw' in args:
-        raw_mode = True
-        args.remove('--raw')
+    time_filter = None
 
     # Parse time filter if present (last argument)
     if len(args) >= 2 and not args[-1].startswith('--'):
@@ -102,6 +100,19 @@ def main():
         time_filter = parse_time_filter(time_str)
         if time_filter:
             print(f"Time filter: {time_str}", file=sys.stderr)
+
+    # Unified output function
+    def output_results(result):
+        for f in result.get('files', []):
+            for line in f.get('lines', []):
+                if line.get('success'):
+                    print(line['decrypted'])
+                else:
+                    # Try to extract the log header from original, otherwise use full original
+                    original = line.get('original', '')
+                    if original.strip():
+                        print(original)
+                print()  # 空行分隔
 
     if args[0] == '--file':
         # Process file at path
@@ -111,16 +122,7 @@ def main():
         file_path = args[1]
 
         result = process_file(file_path, config_path, time_filter)
-
-        if raw_mode:
-            # Output raw decrypted text format
-            for f in result.get('files', []):
-                if f.get('matched_count', 0) > 0 or not time_filter:
-                    for line in f.get('lines', []):
-                        if line.get('success'):
-                            print(line['decrypted'])
-        else:
-            print(json_fmt(result))
+        output_results(result)
 
     elif args[0] == '--folder':
         # Process folder
@@ -130,27 +132,17 @@ def main():
         folder_path = args[1]
 
         result = process_file(folder_path, config_path, time_filter)
-
-        if raw_mode:
-            # Output raw decrypted text format
-            for f in result.get('files', []):
-                if f.get('matched_count', 0) > 0 or not time_filter:
-                    for line in f.get('lines', []):
-                        if line.get('success'):
-                            print(line['decrypted'])
-        else:
-            print(json_fmt(result))
+        output_results(result)
 
     else:
         # Treat as content to decrypt directly
         content = args[0]
         result = decrypt_content_direct(content, config_path)
 
-        if raw_mode:
-            decrypted = result.get('decrypted')
-            print(decrypted if decrypted else result.get('original', content))
+        if result.get('success'):
+            print(result['decrypted'])
         else:
-            print(json_fmt(result))
+            print(result.get('decrypted', result.get('original', content)))
 
 
 if __name__ == '__main__':

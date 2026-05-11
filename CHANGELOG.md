@@ -1,5 +1,17 @@
 # Log Decrypt Skill 变更日志
 
+## v2026-05-11 (本次更新)
+### 重构
+- **统一输出格式**：`decrypt_cli.py` 移除 `--raw` 参数，所有模式（`--file`、`--folder`、直接密文）统一输出格式为 `[时间戳][FLUTTER][标签] {JSON}`
+- 移除文件名标题（`=== xxx ===`）
+- 移除统计信息（Total/Matched/Decrypted 等）
+- 保留空行分隔，保持输出清晰易读
+- 简化代码逻辑，`output_results()` 统一处理所有输出
+
+### 更新
+- SKILL.md：移除 `--raw` 参数相关说明
+- CHANGELOG.md：添加本次重构记录
+
 ## v2026-05-11
 ### 重构
 - **JSON 格式化统一到基类**：`Decryptor` 基类新增 `decrypt_and_format()` 模板方法，调用 `decrypt()` 获取裸字符串后统一 `json_try_fmt()` 格式化。子类 `decrypt()` 只做纯解密（不解压、不格式化），职责单一，扩展新解密方式时无需关心格式化

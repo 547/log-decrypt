@@ -5,7 +5,6 @@
 - **JSON 格式化统一到基类**：`Decryptor` 基类新增 `decrypt_and_format()` 模板方法，调用 `decrypt()` 获取裸字符串后统一 `json_try_fmt()` 格式化。子类 `decrypt()` 只做纯解密（不解压、不格式化），职责单一，扩展新解密方式时无需关心格式化
 - **`AESCBCDecryptor.decrypt()`**：`decrypt()` 还原为纯 AES 解密，返回裸字符串；格式化由基类 `decrypt_and_format()` 统一处理
 - **`PlainTextDecryptor.decrypt()`**：还原为纯透传，不自行格式化
-- **清理 `json_fmt` 残留**：`decrypt.py` main 和 `decrypt_cli.py` 中所有 `json_fmt()` 调用已清除；raw_mode 下解密内容直接 `print()`（已是格式化字符串）；结构体序列化改用 `json.dumps()`
 - **`process_log_content()`**：`decrypted_content` 不再判断 dict 类型（Decryptor 层已保证为格式化字符串），代码更简洁
 - **`decrypt_content_direct()`**：简化为一层包装，直接返回 `try_decrypt_with_methods()` 结果
 - **移除 `import json`**：`decrypt.py` 不再直接使用 `json` 模块，统一走 `json_utils`

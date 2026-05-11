@@ -18,7 +18,7 @@ from typing import Dict, Optional
 script_dir = Path(__file__).parent
 sys.path.insert(0, str(script_dir))
 
-from decrypt import process_log_content, process_file, extract_zip, decrypt_content_direct, parse_time_filter
+from decrypt import process_log_content, process_file, extract_zip, decrypt_content_direct, parse_time_filter, json_fmt
 
 CONFIG_PATH = script_dir / "config.json"
 
@@ -119,7 +119,7 @@ def main():
                         if line.get('success'):
                             print(line['decrypted'])
         else:
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print(json_fmt(result))
         
     elif args[0] == '--folder':
         # Process folder
@@ -138,7 +138,7 @@ def main():
                         if line.get('success'):
                             print(line['decrypted'])
         else:
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print(json_fmt(result))
         
     else:
         # Treat as content to decrypt directly
@@ -151,7 +151,7 @@ def main():
             else:
                 print(result.get('original', content))
         else:
-            print(json.dumps(result, ensure_ascii=False, indent=2))
+            print(json_fmt(result))
 
 
 if __name__ == '__main__':

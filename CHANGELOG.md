@@ -7,6 +7,10 @@
 ### 优化
 - `decrypt_content_direct()`：解密成功后，若明文为 JSON 则格式化后再返回（调用 `format_json_if_possible`）
 
+### 重构
+- 新增 `scripts/utils.py`：通用工具函数，抽离 `json_fmt(obj)` 复用所有 `json.dumps(ensure_ascii=False, indent=2)` 调用
+- `decrypt.py`、`decrypt_cli.py` 均复用 `utils.json_fmt()`
+
 ## v2026-05-08
 
 ### 改进

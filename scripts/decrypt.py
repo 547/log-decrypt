@@ -16,6 +16,7 @@ import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from utils import json_fmt
 
 try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -436,7 +437,7 @@ def main():
             print(f"Time filter: {time_str}", file=sys.stderr)
     
     result = process_file(file_path, config_path, time_filter)
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    print(json_fmt(result))
 
 
 if __name__ == '__main__':

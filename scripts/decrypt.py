@@ -208,10 +208,60 @@ def extract_zip(zip_path: str, extract_dir: str) -> List[str]:
 # Log line pattern: [timestamp][TYPE] content
 LOG_PATTERN = re.compile(r'^(\[\d{2}:\d{2}:\d{2}\.\d{3}\]\[[^\]]+\]\[[^\]]+\]\s*)(.*)$', re.DOTALL)
 
+# Pattern to detect multiple log entries in one line
+# Matches: [time][TYPE][TAG] ciphertext [time][TYPE][TAG] ciphertext ...
+MULTI_LOG_PATTERN = re.compile(
+    r'(\[\d{2}:\d{2}:\d{2}\.\d{3}\]\[[^\]]+\]\[[^\]]+\]\s*)([^\[\]]*(?:\[(?!\d{2}:\d{2}:\d{2}\.\d{3}\])[^\[\]]*)*)',
+    re.DOTALL
+)
+
 # Time patterns for matching
 TIME_PATTERN_HHMM = re.compile(r'^(\d{1,2}):(\d{2})$')
 TIME_PATTERN_HHMMSS = re.compile(r'^(\d{1,2}):(\d{2}):(\d{2})$')
 TIME_PATTERN_FULL = re.compile(r'^(\d{4})[/-](\d{1,2})[/-](\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$')
+
+
+def decrypt_line_parts(prefix: str, data: str, config_path: str) -> tuple:
+    """
+    Process a log line's data part, handling multiple space-separated base64 ciphertexts.
+    Returns (decrypted_line, method_used, success).
+    
+    Supports cases like:
+    [12:17:10.800][FLUTTER][RESPONSE] WAoy3mYh5OrSyhMNsgz79ZII...WAoy3mYh5OrSyhMNsgz79ZII...
+    Or multiple entries merged on one line.
+    """
+    parts = data.strip().split()
+    
+    if len(parts) <= 1:
+        # Single part, use original logic
+        result = try_decrypt_with_methods(data.strip(), config_path)
+        if result['success']:
+            return prefix + result['decrypted'], result['method'], True
+        else:
+            return prefix + data.strip(), result['method'], False
+    
+    # Multiple parts - try to decrypt each
+    decrypted_parts = []
+    any_success = False
+    last_method = 'plain'
+    
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        
+        result = try_decrypt_with_methods(part, config_path)
+        if result['success']:
+            decrypted_parts.append(result['decrypted'])
+            last_method = result['method']
+            any_success = True
+        else:
+            decrypted_parts.append(part)
+            last_method = result['method']
+    
+    # Join all decrypted parts with spaces to maintain structure
+    decrypted_line = prefix + ' '.join(decrypted_parts)
+    return decrypted_line, last_method, any_success
 
 
 def parse_time_filter(time_str: str) -> Dict[str, Any]:
@@ -312,6 +362,7 @@ def process_log_content(content: str, config_path: str, time_filter: Optional[Di
     """
     Process log content line by line.
     If time_filter is provided, only process lines matching that time.
+    Supports multiple base64 ciphertexts separated by spaces in a single line.
     """
     lines = content.split('\n')
     results = []
@@ -328,31 +379,23 @@ def process_log_content(content: str, config_path: str, time_filter: Optional[Di
                 continue
 
             matched_count += 1
-            result = try_decrypt_with_methods(data.strip(), config_path)
+            # Use decrypt_line_parts to handle multiple ciphertexts in one line
+            decrypted_line, method, success = decrypt_line_parts(prefix, data, config_path)
 
-            if result['success']:
-                decrypted_content = result['decrypted']
-                decrypted_line = prefix + decrypted_content
+            if success:
                 results.append({
                     'original': line,
                     'decrypted': decrypted_line,
-                    'method': result['method'],
+                    'method': method,
                     'success': True
-                })
-            elif result['failed'] and result.get('note'):
-                results.append({
-                    'original': line,
-                    'decrypted': line,
-                    'method': result['method'],
-                    'success': False,
-                    'note': result['note']
                 })
             else:
                 results.append({
                     'original': line,
                     'decrypted': line,
-                    'method': 'plain',
-                    'success': True
+                    'method': method,
+                    'success': False,
+                    'note': '解密失败,返回原始密文'
                 })
         else:
             # Non-matching lines (if time filter active, skip them)

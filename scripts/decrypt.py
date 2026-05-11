@@ -407,7 +407,7 @@ def process_file(file_path: str, config_path: str, time_filter: Optional[Dict[st
 
 def decrypt_content_direct(content: str, config_path: str) -> Dict[str, Any]:
     result = try_decrypt_with_methods(content, config_path)
-    if result.get('success') and result.get('decrypted'):
+    if result.get('decrypted'):
         result['decrypted'] = json_try_fmt(result['decrypted'])
     return result
 

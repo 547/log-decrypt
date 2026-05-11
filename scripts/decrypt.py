@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from json_utils import json_fmt, json_parse, json_try_fmt, json_load
+from json_utils import json_fmt, json_parse, json_load
 
 try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -322,8 +322,7 @@ def process_log_content(content: str, config_path: str, time_filter: Optional[Di
             result = try_decrypt_with_methods(data.strip(), config_path)
             
             if result['success']:
-                # Format JSON if decrypted content is JSON
-                decrypted_content = json_try_fmt(result['decrypted'])
+                decrypted_content = result['decrypted']
                 decrypted_line = prefix + decrypted_content
                 results.append({
                     'original': line,
@@ -407,8 +406,7 @@ def process_file(file_path: str, config_path: str, time_filter: Optional[Dict[st
 
 def decrypt_content_direct(content: str, config_path: str) -> Dict[str, Any]:
     result = try_decrypt_with_methods(content, config_path)
-    if result.get('decrypted'):
-        result['decrypted'] = json_try_fmt(result['decrypted'])
+
     return result
 
 

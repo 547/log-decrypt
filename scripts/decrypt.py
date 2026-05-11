@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from utils import json_fmt
+from json_utils import json_fmt, json_parse, json_try_fmt
 
 try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -40,8 +40,9 @@ class Decryptor:
     def is_likely_plaintext(self, content: str) -> bool:
         """Check if content looks like plaintext (not encrypted)"""
         try:
-            json.loads(content)
-            return True
+            parsed, _ = json_parse(content)
+            if parsed:
+                return True
         except:
             pass
         
@@ -297,14 +298,6 @@ def line_matches_time(line: str, time_filter: Dict[str, Any], filename: str = ''
     return True
 
 
-def format_json_if_possible(text: str) -> str:
-    """Try to parse and format JSON content, return formatted if valid."""
-    try:
-        parsed = json.loads(text)
-        return json.dumps(parsed, ensure_ascii=False, indent=2)
-    except (json.JSONDecodeError, ValueError):
-        return text
-
 
 def process_log_content(content: str, config_path: str, time_filter: Optional[Dict[str, Any]] = None, filename: str = '') -> Dict[str, Any]:
     """
@@ -330,7 +323,7 @@ def process_log_content(content: str, config_path: str, time_filter: Optional[Di
             
             if result['success']:
                 # Format JSON if decrypted content is JSON
-                decrypted_content = format_json_if_possible(result['decrypted'])
+                decrypted_content = json_try_fmt(result['decrypted'])
                 decrypted_line = prefix + decrypted_content
                 results.append({
                     'original': line,
@@ -415,7 +408,7 @@ def process_file(file_path: str, config_path: str, time_filter: Optional[Dict[st
 def decrypt_content_direct(content: str, config_path: str) -> Dict[str, Any]:
     result = try_decrypt_with_methods(content, config_path)
     if result.get('success') and result.get('decrypted'):
-        result['decrypted'] = format_json_if_possible(result['decrypted'])
+        result['decrypted'] = json_try_fmt(result['decrypted'])
     return result
 
 

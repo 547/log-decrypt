@@ -9,7 +9,8 @@
 - 简化代码逻辑，`output_results()` 统一处理所有输出
 
 ### 新增
-- **多密文一行支持**：新增 `decrypt_line_parts()` 函数，支持一行内多个空格分隔的 base64 密文，每个密文独立解密并重新组装输出
+- **兼容直接密文无前缀场景**：`decrypt_cli.py` 直接密文模式先调用 `process_log_content`，若无前缀匹配则降级为 `decrypt_content_direct` 直接解密
+- **多密文一行支持**：`process_log_content` 自动处理一行内多个空格分隔的 base64 密文（`base64.b64decode` 自动忽略空格）
 
 ### 更新
 - SKILL.md：移除 `--raw` 参数相关说明

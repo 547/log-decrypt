@@ -135,14 +135,27 @@ def main():
         output_results(result)
 
     else:
-        # Treat as content to decrypt directly (single log line)
+        # Treat as content to decrypt directly
         content = args[0]
         result = process_log_content(content, config_path)
-        for line in result.get('lines', []):
-            if line.get('success'):
-                print(line['decrypted'])
+        
+        # Check if any lines matched the log pattern
+        matched_count = result.get('matched_count', 0)
+        
+        if matched_count > 0:
+            # Has log prefix, use process_log_content results
+            for line in result.get('lines', []):
+                if line.get('success'):
+                    print(line['decrypted'])
+                else:
+                    print(line.get('original', content))
+        else:
+            # No log prefix, treat as raw ciphertext
+            decrypt_result = decrypt_content_direct(content, config_path)
+            if decrypt_result.get('success'):
+                print(decrypt_result['decrypted'])
             else:
-                print(line.get('original', content))
+                print(decrypt_result.get('decrypted', content))
 
 
 if __name__ == '__main__':

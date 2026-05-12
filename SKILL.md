@@ -164,14 +164,19 @@ result = process_file("/path/to/file.txt", "scripts/config.json", time_filter)
 
 ## 日志格式
 
-技能自动识别以下日志格式：
+技能自动识别以下日志格式，支持两种时间戳格式：
 
 ```
-[HH:mm:ss.SSS][FLUTTER][COMMON] {"message":"..."}           <- 明文
-[HH:mm:ss.SSS][FLUTTER][RESPONSE] base64_encrypted_data     <- 加密内容
-[HH:mm:ss.SSS][FLUTTER][REQUEST] base64_encrypted_data     <- 加密内容
-[HH:mm:ss.SSS][FLUTTER][ERROR] {"error":"..."}             <- 明文
+[HH:mm:ss.SSS][FLUTTER][COMMON] {"message":"..."}           <- 明文（时间戳格式1）
+[HH:mm:ss.SSS][FLUTTER][RESPONSE] base64_encrypted_data     <- 加密内容（时间戳格式1）
+[YYYY-MM-DD HH:mm:ss.SSS][FLUTTER][REQUEST] base64_encrypted_data  <- 加密内容（时间戳格式2）
+[YYYY-MM-DD HH:mm:ss.SSS][FLUTTER][ERROR] {"error":"..."}  <- 明文（时间戳格式2）
 ```
+
+**时间戳格式说明：**
+- 格式1：`[HH:mm:ss.SSS]` 如 `[12:17:10.800]`
+- 格式2：`[YYYY-MM-DD HH:mm:ss.SSS]` 如 `[2026-05-12 09:01:01.952]`
+- 两种格式可混用，技能自动识别
 
 ## 返回格式（带时间过滤）
 

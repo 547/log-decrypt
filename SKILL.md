@@ -164,7 +164,9 @@ result = process_file("/path/to/file.txt", "scripts/config.json", time_filter)
 
 ## 日志格式
 
-技能支持可配置的时间戳格式，默认支持两种格式：
+技能支持可配置的日志时间戳格式，通过 `config.json` 中的 `timestamp_formats` 配置。
+
+**重要：timestamp_formats 是必填配置，不配置会报错。**
 
 ```
 [HH:mm:ss.SSS][FLUTTER][COMMON] {"message":"..."}           <- 明文（时间戳格式1）
@@ -173,14 +175,9 @@ result = process_file("/path/to/file.txt", "scripts/config.json", time_filter)
 [YYYY-MM-DD HH:mm:ss.SSS][FLUTTER][ERROR] {"error":"..."}  <- 明文（时间戳格式2）
 ```
 
-**时间戳格式说明：**
-- 格式1：`[HH:mm:ss.SSS]` 如 `[12:17:10.800]`
-- 格式2：`[YYYY-MM-DD HH:mm:ss.SSS]` 如 `[2026-05-12 09:01:01.952]`
-- 两种格式可混用，技能自动识别
+**时间戳格式配置（必填）：**
 
-**自定义时间戳格式：**
-
-在 `config.json` 中添加 `timestamp_formats` 配置即可支持新的时间戳格式：
+在 `config.json` 中添加 `timestamp_formats` 配置：
 
 ```json
 {

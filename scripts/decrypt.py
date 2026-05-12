@@ -205,30 +205,36 @@ def extract_zip(zip_path: str, extract_dir: str) -> List[str]:
     return extracted
 
 
-# Default timestamp formats (used when not configured)
-DEFAULT_TIMESTAMP_FORMATS = [
-    {
-        "name": "time_only",
-        "pattern": r"\[(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})\.(?P<millisecond>\d{3})\]\[[^\]]+\]\[[^\]]+\]\s*"
-    },
-    {
-        "name": "full_datetime",
-        "pattern": r"\[(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})\s+(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})\.(?P<millisecond>\d{3})\]\[[^\]]+\]\[[^\]]+\]\s*"
-    }
-]
-
 # Module-level variables (initialized lazily from config)
 _TIMESTAMP_FORMATS = None
-_LOG_PATTERN = None
 
 
 def _init_timestamp_patterns(config: Dict[str, Any]) -> None:
-    """Initialize timestamp patterns from config."""
+    """Initialize timestamp patterns from config. Raises error if not configured."""
     global _TIMESTAMP_FORMATS
     if _TIMESTAMP_FORMATS is not None:
         return
 
-    _TIMESTAMP_FORMATS = config.get('timestamp_formats', DEFAULT_TIMESTAMP_FORMATS)
+    timestamp_formats = config.get('timestamp_formats')
+    if not timestamp_formats:
+        print(f"❌ 错误: 缺少 timestamp_formats 配置", file=sys.stderr)
+        print(f"", file=sys.stderr)
+        print(f"请在 config.json 中添加 timestamp_formats 配置:", file=sys.stderr)
+        print(f"", file=sys.stderr)
+        print(f'  "timestamp_formats": [', file=sys.stderr)
+        print(f'    {{', file=sys.stderr)
+        print(f'      "name": "time_only",', file=sys.stderr)
+        print(f'      "description": "[HH:MM:SS.mmm]",', file=sys.stderr)
+        print(f'      "pattern": "\\[(?P<hour>\\d{{2}}):(?P<minute>\\d{{2}}):(?P<second>\\d{{2}})\\.(?P<millisecond>\\d{{3}})\\]\\[[^\\]]+\\]\\[[^\\]]+\\]\\s*"', file=sys.stderr)
+        print(f'    }}', file=sys.stderr)
+        print(f'  ]', file=sys.stderr)
+        print(f"", file=sys.stderr)
+        print(f"pattern 中的命名捕获组支持: year, month, day, hour, minute, second, millisecond", file=sys.stderr)
+        print(f"", file=sys.stderr)
+        print(f"参考: config.json.example 中的 timestamp_formats 示例", file=sys.stderr)
+        sys.exit(1)
+
+    _TIMESTAMP_FORMATS = timestamp_formats
     # Compile patterns for faster matching
     for fmt in _TIMESTAMP_FORMATS:
         if "compiled" not in fmt:

@@ -1,4 +1,16 @@
 {
+  "timestamp_formats": [
+    {
+      "name": "time_only",
+      "description": "[HH:MM:SS.mmm]",
+      "pattern": "\\[(?P<hour>\\d{2}):(?P<minute>\\d{2}):(?P<second>\\d{2})\\.(?P<millisecond>\\d{3})\\]\\[[^\\]]+\\]\\[[^\\]]+\\]\\s*"
+    },
+    {
+      "name": "full_datetime",
+      "description": "[YYYY-MM-DD HH:MM:SS.mmm]",
+      "pattern": "\\[(?P<year>\\d{4})-(?P<month>\\d{2})-(?P<day>\\d{2})\\s+(?P<hour>\\d{2}):(?P<minute>\\d{2}):(?P<second>\\d{2})\\.(?P<millisecond>\\d{3})\\]\\[[^\\]]+\\]\\[[^\\]]+\\]\\s*"
+    }
+  ],
   "methods": [
     {
       "name": "plain",

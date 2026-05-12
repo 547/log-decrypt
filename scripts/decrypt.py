@@ -205,9 +205,34 @@ def extract_zip(zip_path: str, extract_dir: str) -> List[str]:
     return extracted
 
 
-# Log line pattern: supports both [HH:MM:SS.mmm] and [YYYY-MM-DD HH:MM:SS.mmm]
-# Format: [timestamp][TYPE][LEVEL] content
-LOG_PATTERN = re.compile(r'^(\[(?:\d{4}-\d{2}-\d{2}\s+)?\d{2}:\d{2}:\d{2}\.\d{3}\]\[[^\]]+\]\[[^\]]+\]\s*)(.*)$', re.DOTALL)
+# Default timestamp formats (used when not configured)
+DEFAULT_TIMESTAMP_FORMATS = [
+    {
+        "name": "time_only",
+        "pattern": r"\[(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})\.(?P<millisecond>\d{3})\]\[[^\]]+\]\[[^\]]+\]\s*"
+    },
+    {
+        "name": "full_datetime",
+        "pattern": r"\[(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})\s+(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})\.(?P<millisecond>\d{3})\]\[[^\]]+\]\[[^\]]+\]\s*"
+    }
+]
+
+# Module-level variables (initialized lazily from config)
+_TIMESTAMP_FORMATS = None
+_LOG_PATTERN = None
+
+
+def _init_timestamp_patterns(config: Dict[str, Any]) -> None:
+    """Initialize timestamp patterns from config."""
+    global _TIMESTAMP_FORMATS
+    if _TIMESTAMP_FORMATS is not None:
+        return
+
+    _TIMESTAMP_FORMATS = config.get('timestamp_formats', DEFAULT_TIMESTAMP_FORMATS)
+    # Compile patterns for faster matching
+    for fmt in _TIMESTAMP_FORMATS:
+        if "compiled" not in fmt:
+            fmt["compiled"] = re.compile(fmt["pattern"])
 
 # Time patterns for matching
 TIME_PATTERN_HHMM = re.compile(r'^(\d{1,2}):(\d{2})$')
@@ -275,45 +300,64 @@ def extract_date_from_filename(filename: str) -> Optional[Dict[str, int]]:
     return None
 
 
+def _get_line_time(line: str) -> Optional[Dict[str, int]]:
+    """
+    Extract time components from a log line using configured timestamp formats.
+    Returns dict with optional keys: year, month, day, hour, minute, second, millisecond
+    Returns None if no timestamp format matches.
+    """
+    if _TIMESTAMP_FORMATS is None:
+        return None
+
+    for fmt in _TIMESTAMP_FORMATS:
+        pattern = fmt.get("compiled", re.compile(fmt["pattern"]))
+        match = pattern.search(line)
+        if match:
+            groups = match.groupdict()
+            result = {}
+            for key in ['year', 'month', 'day', 'hour', 'minute', 'second', 'millisecond']:
+                if key in groups and groups[key]:
+                    result[key] = int(groups[key])
+            return result
+    return None
+
+
+def _match_log_line(line: str) -> Optional[tuple]:
+    """
+    Try to match a log line against all configured timestamp formats.
+    Returns (prefix, content) if matched, None otherwise.
+    """
+    if _TIMESTAMP_FORMATS is None:
+        return None
+
+    for fmt in _TIMESTAMP_FORMATS:
+        pattern = fmt.get("compiled", re.compile(fmt["pattern"]))
+        # Pattern captures prefix, content is everything after
+        # Try matching from start of line
+        match = pattern.match(line)
+        if match:
+            # The pattern includes TYPE, LEVEL and trailing whitespace
+            # Extract what the pattern matched (prefix) and the rest
+            matched_text = match.group(0)
+            # Find where the actual content starts (after the matched prefix)
+            content = line[len(matched_text):]
+            return (matched_text, content)
+    return None
+
+
 def line_matches_time(line: str, time_filter: Dict[str, Any], filename: str = '') -> bool:
     """Check if a log line matches the time filter."""
-    # Extract time from log line: supports both [HH:MM:SS.mmm] and [YYYY-MM-DD HH:MM:SS.mmm]
-    # Try full datetime format first: [YYYY-MM-DD HH:MM:SS.mmm]
-    full_match = re.search(r'\[(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})\.(\d{3})\]', line)
-    if full_match:
-        line_year = int(full_match.group(1))
-        line_month = int(full_match.group(2))
-        line_day = int(full_match.group(3))
-        line_hour = int(full_match.group(4))
-        line_minute = int(full_match.group(5))
-        line_second = int(full_match.group(6))
-
-        if line_hour != time_filter['hour']:
-            return False
-        if line_minute != time_filter['minute']:
-            return False
-        if time_filter['second'] is not None and line_second != time_filter['second']:
-            return False
-
-        # If full date filter, also check date from log line
-        if time_filter['type'] == 'full':
-            if line_year != time_filter['year']:
-                return False
-            if line_month != time_filter['month']:
-                return False
-            if line_day != time_filter['day']:
-                return False
-
-        return True
-
-    # Fallback: time-only format [HH:MM:SS.mmm]
-    time_match = re.search(r'\[(\d{2}):(\d{2}):(\d{2})\.(\d{3})\]', line)
-    if not time_match:
+    # Extract time from log line using configured formats
+    time_components = _get_line_time(line)
+    if time_components is None:
         return False
 
-    line_hour = int(time_match.group(1))
-    line_minute = int(time_match.group(2))
-    line_second = int(time_match.group(3))
+    line_hour = time_components.get('hour', 0)
+    line_minute = time_components.get('minute', 0)
+    line_second = time_components.get('second', 0)
+    line_year = time_components.get('year')
+    line_month = time_components.get('month')
+    line_day = time_components.get('day')
 
     # Check time components
     if line_hour != time_filter['hour']:
@@ -323,16 +367,26 @@ def line_matches_time(line: str, time_filter: Dict[str, Any], filename: str = ''
     if time_filter['second'] is not None and line_second != time_filter['second']:
         return False
 
-    # If full date filter, also check date from filename
+    # If full date filter, check date
     if time_filter['type'] == 'full':
-        file_date = extract_date_from_filename(filename)
-        if file_date:
-            if file_date['year'] != time_filter['year']:
+        if line_year is not None:
+            # Full datetime format - date is in the log line
+            if line_year != time_filter['year']:
                 return False
-            if file_date['month'] != time_filter['month']:
+            if line_month != time_filter['month']:
                 return False
-            if file_date['day'] != time_filter['day']:
+            if line_day != time_filter['day']:
                 return False
+        else:
+            # Time-only format - check date from filename
+            file_date = extract_date_from_filename(filename)
+            if file_date:
+                if file_date['year'] != time_filter['year']:
+                    return False
+                if file_date['month'] != time_filter['month']:
+                    return False
+                if file_date['day'] != time_filter['day']:
+                    return False
 
     return True
 
@@ -343,15 +397,18 @@ def process_log_content(content: str, config_path: str, time_filter: Optional[Di
     Process log content line by line.
     If time_filter is provided, only process lines matching that time.
     """
+    # Initialize timestamp patterns from config
+    config = load_config(config_path)
+    _init_timestamp_patterns(config)
+
     lines = content.split('\n')
     results = []
     matched_count = 0
 
     for line in lines:
-        match = LOG_PATTERN.match(line)
-        if match:
-            prefix = match.group(1)
-            data = match.group(2)
+        match_result = _match_log_line(line)
+        if match_result:
+            prefix, data = match_result
 
             # Check time filter (pass filename for date matching)
             if time_filter and not line_matches_time(line, time_filter, filename):

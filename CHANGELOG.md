@@ -2,10 +2,18 @@
 
 ## v2026-05-12 (本次更新)
 ### 新增
-- **兼容完整日期时间格式时间戳**：`LOG_PATTERN` 正则支持两种时间戳格式
-  - 新格式：`[YYYY-MM-DD HH:MM:SS.mmm]` 如 `[2026-05-12 09:01:01.952]`
-  - 原格式：`[HH:MM:SS.mmm]` 如 `[12:17:10.800]`
-- **时间过滤增强**：`line_matches_time()` 支持从日志行提取完整日期进行日期时间过滤
+- **可配置时间戳格式**：`timestamp_formats` 支持在 `config.json` 中配置多种时间戳格式
+  - 默认支持：`[HH:MM:SS.mmm]` 和 `[YYYY-MM-DD HH:MM:SS.mmm]`
+  - 用户可添加自定义格式（新增正则表达式即可）
+  - 解密脚本从配置动态加载格式，无需修改代码
+
+### 更新
+- `config.json.example`：新增 `timestamp_formats` 配置项
+- `decrypt.py`：
+  - `_init_timestamp_patterns()` - 从配置初始化时间戳模式
+  - `_get_line_time()` - 使用配置的格式提取时间
+  - `_match_log_line()` - 使用配置的格式匹配日志行
+  - 移除硬编码的 `LOG_PATTERN`，改为动态构建
 
 ## v2026-05-11 (本次更新)
 ### 重构

@@ -164,7 +164,7 @@ result = process_file("/path/to/file.txt", "scripts/config.json", time_filter)
 
 ## 日志格式
 
-技能自动识别以下日志格式，支持两种时间戳格式：
+技能支持可配置的时间戳格式，默认支持两种格式：
 
 ```
 [HH:mm:ss.SSS][FLUTTER][COMMON] {"message":"..."}           <- 明文（时间戳格式1）
@@ -177,6 +177,36 @@ result = process_file("/path/to/file.txt", "scripts/config.json", time_filter)
 - 格式1：`[HH:mm:ss.SSS]` 如 `[12:17:10.800]`
 - 格式2：`[YYYY-MM-DD HH:mm:ss.SSS]` 如 `[2026-05-12 09:01:01.952]`
 - 两种格式可混用，技能自动识别
+
+**自定义时间戳格式：**
+
+在 `config.json` 中添加 `timestamp_formats` 配置即可支持新的时间戳格式：
+
+```json
+{
+  "timestamp_formats": [
+    {
+      "name": "time_only",
+      "description": "[HH:MM:SS.mmm]",
+      "pattern": "\\[(?P<hour>\\d{2}):(?P<minute>\\d{2}):(?P<second>\\d{2})\\.(?P<millisecond>\\d{3})\\]\\[[^\\]]+\\]\\[[^\\]]+\\]\\s*"
+    },
+    {
+      "name": "full_datetime",
+      "description": "[YYYY-MM-DD HH:MM:SS.mmm]",
+      "pattern": "\\[(?P<year>\\d{4})-(?P<month>\\d{2})-(?P<day>\\d{2})\\s+(?P<hour>\\d{2}):(?P<minute>\\d{2}):(?P<second>\\d{2})\\.(?P<millisecond>\\d{3})\\]\\[[^\\]]+\\]\\[[^\\]]+\\]\\s*"
+    }
+  ],
+  "methods": [...]
+}
+```
+
+**配置说明：**
+- `name`: 格式名称
+- `description`: 格式描述（仅用于文档）
+- `pattern`: 正则表达式，必须包含以下命名捕获组：
+  - `hour`, `minute`, `second` - 必需
+  - `year`, `month`, `day` - 可选（用于完整日期时间格式）
+  - `millisecond` - 可选
 
 ## 返回格式（带时间过滤）
 

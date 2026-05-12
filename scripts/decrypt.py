@@ -205,8 +205,9 @@ def extract_zip(zip_path: str, extract_dir: str) -> List[str]:
     return extracted
 
 
-# Log line pattern: [timestamp][TYPE] content
-LOG_PATTERN = re.compile(r'^(\[\d{2}:\d{2}:\d{2}\.\d{3}\]\[[^\]]+\]\[[^\]]+\]\s*)(.*)$', re.DOTALL)
+# Log line pattern: supports both [HH:MM:SS.mmm] and [YYYY-MM-DD HH:MM:SS.mmm]
+# Format: [timestamp][TYPE][LEVEL] content
+LOG_PATTERN = re.compile(r'^(\[(?:\d{4}-\d{2}-\d{2}\s+)?\d{2}:\d{2}:\d{2}\.\d{3}\]\[[^\]]+\]\[[^\]]+\]\s*)(.*)$', re.DOTALL)
 
 # Time patterns for matching
 TIME_PATTERN_HHMM = re.compile(r'^(\d{1,2}):(\d{2})$')
@@ -276,7 +277,36 @@ def extract_date_from_filename(filename: str) -> Optional[Dict[str, int]]:
 
 def line_matches_time(line: str, time_filter: Dict[str, Any], filename: str = '') -> bool:
     """Check if a log line matches the time filter."""
-    # Extract time from log line: [HH:MM:SS.mmm]
+    # Extract time from log line: supports both [HH:MM:SS.mmm] and [YYYY-MM-DD HH:MM:SS.mmm]
+    # Try full datetime format first: [YYYY-MM-DD HH:MM:SS.mmm]
+    full_match = re.search(r'\[(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})\.(\d{3})\]', line)
+    if full_match:
+        line_year = int(full_match.group(1))
+        line_month = int(full_match.group(2))
+        line_day = int(full_match.group(3))
+        line_hour = int(full_match.group(4))
+        line_minute = int(full_match.group(5))
+        line_second = int(full_match.group(6))
+
+        if line_hour != time_filter['hour']:
+            return False
+        if line_minute != time_filter['minute']:
+            return False
+        if time_filter['second'] is not None and line_second != time_filter['second']:
+            return False
+
+        # If full date filter, also check date from log line
+        if time_filter['type'] == 'full':
+            if line_year != time_filter['year']:
+                return False
+            if line_month != time_filter['month']:
+                return False
+            if line_day != time_filter['day']:
+                return False
+
+        return True
+
+    # Fallback: time-only format [HH:MM:SS.mmm]
     time_match = re.search(r'\[(\d{2}):(\d{2}):(\d{2})\.(\d{3})\]', line)
     if not time_match:
         return False
